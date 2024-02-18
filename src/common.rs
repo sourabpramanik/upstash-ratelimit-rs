@@ -1,6 +1,6 @@
 use redis::Client;
 
-use crate::cache::Cache;
+use crate::cache::EphemeralCache;
 
 #[derive(Debug)]
 pub(crate) struct Blocked {
@@ -17,5 +17,5 @@ pub struct RateLimitResponse {
 
 pub struct RegionContext {
     pub redis: Client,
-    pub cache: Cache,
+    pub cache: EphemeralCache,
 }

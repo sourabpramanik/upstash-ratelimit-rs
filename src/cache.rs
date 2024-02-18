@@ -5,13 +5,16 @@ use std::{
 
 use crate::common::Blocked;
 
-pub struct Cache {
+/**
+ * EphemeralCache is used to block certain identifiers right away in case they have already exceeded the ratelimit.
+ */
+pub struct EphemeralCache {
     cache: HashMap<String, u128>,
 }
 
-impl Cache {
-    pub fn new() -> Cache {
-        Cache {
+impl EphemeralCache {
+    pub fn new() -> Self {
+        EphemeralCache {
             cache: HashMap::new(),
         }
     }
@@ -43,15 +46,19 @@ impl Cache {
             },
         }
     }
+
     fn block_until(&mut self, identifier: &str, reset: u128) {
         self.cache.insert(identifier.to_owned(), reset);
     }
+
     fn set(&mut self, identifier: &str, reset: u128) {
         self.cache.insert(identifier.to_owned(), reset);
     }
+
     fn get(&self, identifier: &str) -> Option<u128> {
         self.cache.get(identifier).copied()
     }
+
     fn incr(&mut self, identifier: &str) {
         let mut value = self.get(identifier).unwrap_or_else(|| 0);
         value += 1;
@@ -61,12 +68,12 @@ impl Cache {
 
 #[cfg(test)]
 mod tests {
-    use super::Cache;
+    use super::EphemeralCache;
 
     #[test]
     fn test_get_cache() {
         let key = "ip_address";
-        let mut test_cache = Cache::new();
+        let mut test_cache = EphemeralCache::new();
         test_cache.set(key, 2000);
         assert_eq!(2000, test_cache.get(key).unwrap());
         assert!(test_cache.get("unknown_key").is_none());
@@ -77,7 +84,7 @@ mod tests {
         let key_one = "ip_address_one";
         let key_two = "ip_address_two";
 
-        let mut test_cache = Cache::new();
+        let mut test_cache = EphemeralCache::new();
 
         test_cache.incr(key_one);
 
@@ -91,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_is_blocked() {
-        let mut test_cache = Cache::new();
+        let mut test_cache = EphemeralCache::new();
         let key = "ip_address";
 
         assert!(!test_cache.is_blocked(key).blocked);
