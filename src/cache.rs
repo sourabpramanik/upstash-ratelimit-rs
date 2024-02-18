@@ -22,7 +22,7 @@ impl Cache {
         match reset {
             Some(value) => {
                 if *value
-                    > SystemTime::now()
+                    < SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .expect("Time went backwards")
                         .as_millis()
@@ -98,7 +98,7 @@ mod tests {
 
         assert!(!test_cache.is_blocked(key).blocked);
 
-        test_cache.block_until(key, 3000);
-        assert!(test_cache.is_blocked(key).blocked);
+        test_cache.block_until(key, 1708223649);
+        assert!(!test_cache.is_blocked(key).blocked);
     }
 }
