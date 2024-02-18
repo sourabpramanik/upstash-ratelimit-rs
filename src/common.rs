@@ -2,6 +2,7 @@ use redis::Client;
 
 use crate::cache::Cache;
 
+#[derive(Debug)]
 pub(crate) struct Blocked {
     pub blocked: bool,
     pub reset: u128,

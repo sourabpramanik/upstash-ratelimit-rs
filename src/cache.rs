@@ -21,7 +21,7 @@ impl Cache {
 
         match reset {
             Some(value) => {
-                if value.to_owned()
+                if *value
                     > SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .expect("Time went backwards")
@@ -56,5 +56,49 @@ impl Cache {
         let mut value = self.get(identifier).unwrap_or_else(|| 0);
         value += 1;
         self.cache.insert(identifier.to_owned(), value);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::common::Blocked;
+
+    use super::Cache;
+
+    #[test]
+    fn test_get_cache() {
+        let key = "ip_address";
+        let mut test_cache = Cache::new();
+        test_cache.set(key, 2000);
+        assert_eq!(2000, test_cache.get(key).unwrap());
+        assert!(test_cache.get("unknown_key").is_none());
+    }
+
+    #[test]
+    fn test_incr_cache() {
+        let key_one = "ip_address_one";
+        let key_two = "ip_address_two";
+
+        let mut test_cache = Cache::new();
+
+        test_cache.incr(key_one);
+
+        assert_eq!(1, test_cache.get(key_one).unwrap());
+
+        test_cache.set(key_two, 4000);
+        test_cache.incr(key_two);
+
+        assert_ne!(4000, test_cache.get(key_two).unwrap())
+    }
+
+    #[test]
+    fn test_is_blocked() {
+        let mut test_cache = Cache::new();
+        let key = "ip_address";
+
+        assert!(!test_cache.is_blocked(key).blocked);
+
+        test_cache.block_until(key, 3000);
+        assert!(test_cache.is_blocked(key).blocked);
     }
 }
