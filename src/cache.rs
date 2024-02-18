@@ -61,8 +61,6 @@ impl Cache {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::Blocked;
-
     use super::Cache;
 
     #[test]
