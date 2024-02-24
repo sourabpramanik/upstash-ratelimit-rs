@@ -1,7 +1,5 @@
 use std::{future::Future, pin::Pin};
 
-use super::region::SingleRegionContext;
-
 #[derive(Debug)]
 pub struct RateLimitResponse {
     pub success: bool,
@@ -10,4 +8,10 @@ pub struct RateLimitResponse {
     pub reset: u128,
 }
 
-pub type AlgorithmResponse =  Box<dyn Fn(SingleRegionContext, String) -> Pin<Box<dyn Future<Output = RateLimitResponse> + Send>>>;
+pub trait Algorithm {
+    type TContext;
+   
+    fn fixed_window(tokens: u32, window: &str) -> AlgorithmResponse<Self::TContext>;
+}
+
+pub type AlgorithmResponse<T> =  Box<dyn Fn(T, String) -> Pin<Box<dyn Future<Output = RateLimitResponse> + Send>>>;

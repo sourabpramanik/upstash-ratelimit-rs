@@ -5,7 +5,7 @@ use std::{
 use redis::{Client, AsyncCommands};
 
 use super::duration::into_milliseconds;
-use crate::model::{common::{AlgorithmResponse, RateLimitResponse}, region::SingleRegionContext};
+use crate::model::{common::{Algorithm, AlgorithmResponse, RateLimitResponse}, region::SingleRegionContext};
 
 #[derive(Debug)]
 pub struct SingleRegionConfig {
@@ -14,29 +14,20 @@ pub struct SingleRegionConfig {
 }
 
 #[derive(Debug)]
-pub struct SingleRegionRateLimit {
-    ctx: SingleRegionContext,
+pub struct SingleRegionRateLimit<T> {
+    ctx: T,
     prefix: String,
 }
 
-impl SingleRegionRateLimit {
-    pub fn new(config: SingleRegionConfig) -> Self {
-        let ctx = SingleRegionContext {
-            redis: config.redis,
-            cache: None,
-        };
-        let prefix = config.prefix.unwrap_or("@upstash/ratelimit".to_string());
-
-        Self { ctx, prefix }
-    }
-
-    pub fn fixed_window(
+impl<T> Algorithm for SingleRegionRateLimit<T>{
+    type TContext = SingleRegionContext;
+    fn fixed_window(
         tokens: u32,
         window: &str,
-    ) -> AlgorithmResponse {
+    ) -> AlgorithmResponse<Self::TContext> {
         let window_duration = into_milliseconds(window);
 
-        Box::new(move |ctx: SingleRegionContext, identifier: String| {
+        Box::new(move |ctx: Self::TContext, identifier: String| {
             Box::pin(async move {
                 let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
                     panic!("Unable to get current time");
