@@ -5,7 +5,7 @@ use std::{
 use redis::{Client, AsyncCommands};
 
 use super::duration::into_milliseconds;
-use crate::model::{common::{Algorithm, AlgorithmResponse, RateLimitResponse}, region::SingleRegionContext};
+use crate::model::{common::{Algorithm, AlgorithmResponse, RatelimitResponse}, region::SingleRegionContext};
 
 #[derive(Debug)]
 pub struct SingleRegionConfig {
@@ -37,7 +37,7 @@ impl<T> Algorithm for SingleRegionRateLimit<T>{
                 
                 if ctx.cache.is_some() {
                     if ctx.cache.unwrap().is_blocked(&identifier).blocked {
-                        return RateLimitResponse {
+                        return RatelimitResponse {
                             success: false,
                             limit: tokens,
                             remaining: 0,
@@ -73,7 +73,7 @@ impl<T> Algorithm for SingleRegionRateLimit<T>{
                     Ok(val) => val,
                     Err(err) => {
                         println!("Failed to evaluate: {}", err);
-                        return RateLimitResponse{
+                        return RatelimitResponse{
                             success: false,
                             limit: tokens,
                             remaining: 0,
@@ -85,7 +85,7 @@ impl<T> Algorithm for SingleRegionRateLimit<T>{
                 let success = used_tokens <= tokens;
                 let reset = (bucket + 1) * window_duration;
                 let remaining = max(0, tokens - used_tokens);
-                RateLimitResponse {
+                RatelimitResponse {
                     success,
                     limit: tokens,
                     remaining,
