@@ -1,6 +1,5 @@
 use crate::model::common::RateLimitResponse;
 
-pub(crate) mod algorithm;
 pub(crate) mod duration;
 pub mod single;
 
