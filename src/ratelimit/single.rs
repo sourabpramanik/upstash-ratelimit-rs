@@ -1,11 +1,11 @@
 use std::{
-    cmp::max, future::Future, pin::Pin, time::{SystemTime, UNIX_EPOCH}
+    cmp::max, time::{SystemTime, UNIX_EPOCH}
 };
 
 use redis::{Client, AsyncCommands};
 
 use super::duration::into_milliseconds;
-use crate::model::{cache::EphemeralCache, common::RateLimitResponse, region::SingleRegionContext};
+use crate::model::{common::{AlgorithmResponse, RateLimitResponse}, region::SingleRegionContext};
 
 #[derive(Debug)]
 pub struct SingleRegionConfig {
@@ -33,14 +33,8 @@ impl SingleRegionRateLimit {
     pub fn fixed_window(
         tokens: u32,
         window: &str,
-    ) -> Box<
-        dyn Fn(
-            SingleRegionContext,
-            String,
-        ) -> Pin<Box<dyn Future<Output = RateLimitResponse> + Send>>,
-    > {
+    ) -> AlgorithmResponse {
         let window_duration = into_milliseconds(window);
-       
 
         Box::new(move |ctx: SingleRegionContext, identifier: String| {
             Box::pin(async move {
