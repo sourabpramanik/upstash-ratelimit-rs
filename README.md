@@ -10,4 +10,6 @@ Coming Soon...
 ## Roadmap
 Coming soon...
 
+## Contributions
 
+This library is still in WIP. Very soon all the contributions will be accepted.
