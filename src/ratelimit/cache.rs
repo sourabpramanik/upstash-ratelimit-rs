@@ -9,7 +9,7 @@ pub struct Blocked {
     pub reset: u128,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EphemeralCache {
     pub cache: HashMap<String, u128>,
 }
