@@ -48,20 +48,7 @@ impl Algorithm for FixedWindow{
         let mut connection = self.client.redis.get_async_connection().await.unwrap();
         
         // Script taken from @upstash/ratelimit
-        let script = redis::Script::new(
-            r"
-            local key     = KEYS[1]
-            local window  = ARGV[1]
-            
-            local value = redis.call('INCR', key)
-            if value == 1 then 
-            -- The first time this key is set, the value will be 1.
-            -- So we only need the expire command once
-            redis.call('PEXPIRE', key, window)
-            end
-            
-            return value",
-        );
+        let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
         let result: Result<i32, redis::RedisError> = script
             .key(key)
