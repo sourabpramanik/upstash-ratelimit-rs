@@ -42,7 +42,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_fixed_window() {
-        let Ok(redis) = redis::Client::open("redis://default:dbb30009606648f4be0822a4d16f743d@apn1-modern-mollusk-34204.upstash.io:34204") else {
+        let Ok(redis) = redis::Client::open("redis://default:dbb3xxxxxxxxxxxxxxxxxxxxxxx6f743d@apn1-modern-mollusk-34204.upstash.io:34204") else {
             panic!("Failed to connect")
         };
         let client = RatelimitConfiguration::new(redis, true);
