@@ -8,7 +8,7 @@ use redis::Client;
 use self::{cache::EphemeralCache, common::RatelimitResponse};
 
 pub trait Algorithm{
-    async fn limit(&self, identifier: &str) -> RatelimitResponse;
+    async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse;
 }
 
 #[derive(Debug)]
@@ -34,7 +34,6 @@ impl RatelimitConfiguration{
 
 #[cfg(test)]
 mod tests {
-    use std::{thread::sleep, time::Duration};
 
     use self::single::{FixedWindow, SlidingWindow};
 
@@ -56,11 +55,12 @@ mod tests {
         let ratelimit = FixedWindow::new(client, 10, "60s");
 
         for _ in 1..11 {
-            let res= ratelimit.limit(identifier).await;
+            let res= ratelimit.limit(identifier, None).await;
+            
             assert!(res.success);
         }
 
-        let res = ratelimit.limit(identifier).await;
+        let res = ratelimit.limit(identifier, None).await;
         assert!(!res.success);
     }
     #[tokio::test]
@@ -78,11 +78,11 @@ mod tests {
         let identifier = "anonymous12";
 
         for _ in 1..11 {
-            let res= ratelimit.limit(identifier).await;
+            let res= ratelimit.limit(identifier, None).await;
             assert!(res.success);
         }
 
-        let res = ratelimit.limit(identifier).await;
+        let res = ratelimit.limit(identifier, None).await;
         assert!(!res.success);
     }
 

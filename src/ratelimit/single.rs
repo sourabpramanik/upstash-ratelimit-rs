@@ -24,7 +24,7 @@ impl FixedWindow{
 }
 
  impl Algorithm for FixedWindow{
-    async fn limit(&self, identifier: &str) -> RatelimitResponse{
+    async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse{
         let tokens = self.tokens;
         let duration = self.duration;
 
@@ -49,9 +49,11 @@ impl FixedWindow{
         
         let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
+        let increment_by = rate.unwrap_or_else(|| 1);
+
         let result: Result<i32, redis::RedisError> = script
             .key(key)
-            .arg(duration as u64)
+            .arg(vec![duration as u64, increment_by as u64])
             .invoke_async(&mut connection).await;
 
         let used_tokens: i32 = match result {
@@ -101,7 +103,7 @@ impl SlidingWindow{
 }
 
  impl Algorithm for SlidingWindow{
-    async fn limit(&self, identifier: &str) -> RatelimitResponse{
+    async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse{
         let tokens = self.tokens;
         let duration = self.duration;
 
@@ -130,13 +132,15 @@ impl SlidingWindow{
         
         let script = redis::Script::new(include_str!("../../scripts/single_region/sliding_window.lua"));
 
+        let increment_by = rate.unwrap_or_else(|| 1);
+
         let result: Result<i32, redis::RedisError> = script
             .key(vec![current_key, previous_key])
             .arg(vec![
                 tokens,
                 now.as_millis() as u32,
                 duration as u32,
-                1,
+                increment_by,
             ])
             .invoke_async(&mut connection).await;
 
