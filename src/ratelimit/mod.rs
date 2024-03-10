@@ -8,10 +8,10 @@ use redis::Client;
 use self::{cache::EphemeralCache, common::RatelimitResponse};
 
 pub trait Algorithm{
-    async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse;
+    fn limit(&self, identifier: &str, rate: Option<u32>) -> impl std::future::Future<Output = RatelimitResponse> + Send;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RatelimitConfiguration{
     pub redis: Client,
     pub cache: Option<EphemeralCache>,

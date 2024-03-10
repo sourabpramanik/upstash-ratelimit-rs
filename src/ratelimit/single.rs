@@ -6,7 +6,7 @@ use redis::{Client, AsyncCommands};
 use super::{duration::into_milliseconds, RatelimitConfiguration, Algorithm};
 use crate::ratelimit::RatelimitResponse;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FixedWindow{
     client: RatelimitConfiguration,
     tokens: u32,
@@ -85,7 +85,7 @@ impl FixedWindow{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SlidingWindow{
     client: RatelimitConfiguration,
     tokens: u32,
