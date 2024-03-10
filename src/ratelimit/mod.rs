@@ -36,7 +36,7 @@ impl RatelimitConfiguration{
 mod tests {
     use std::{thread::sleep, time::Duration};
 
-    use self::single::FixedWindow;
+    use self::single::{FixedWindow, SlidingWindow};
 
     use super::*;
     use dotenv::dotenv;
@@ -50,16 +50,40 @@ mod tests {
             panic!("Failed to connect")
         };
         let client = RatelimitConfiguration::new(redis, true);
-
+        
+        let identifier = "anonymous32";
+            
         let ratelimit = FixedWindow::new(client, 10, "60s");
 
-        for _ in 0..10 {
-            let res= ratelimit.limit("anonymous").await;
-            sleep(Duration::from_millis(1000));
+        for _ in 1..11 {
+            let res= ratelimit.limit(identifier).await;
             assert!(res.success);
         }
 
-        let res = ratelimit.limit("anonymous").await;
-        assert!(res.success);
+        let res = ratelimit.limit(identifier).await;
+        assert!(!res.success);
     }
+    #[tokio::test]
+    async fn test_sliding_window() {
+        dotenv().ok();
+
+        let connection_str = std::env::var("UPSTASH_REDIS_URL").unwrap_or_else(|_|panic!("Expecting UPSTASH_REDIS_URL to be set"));
+        let Ok(redis) = redis::Client::open(connection_str) else {
+            panic!("Failed to connect")
+        };
+        let client = RatelimitConfiguration::new(redis, true);
+
+        let ratelimit = SlidingWindow::new(client, 10, "60s");
+
+        let identifier = "anonymous12";
+
+        for _ in 1..11 {
+            let res= ratelimit.limit(identifier).await;
+            assert!(res.success);
+        }
+
+        let res = ratelimit.limit(identifier).await;
+        assert!(!res.success);
+    }
+
 }
