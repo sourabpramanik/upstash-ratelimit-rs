@@ -13,25 +13,19 @@ pub trait Algorithm {
 
 #[derive(Debug, Clone)]
 pub struct RatelimitConfiguration {
-	pub(crate) redis: Client,
-	pub(crate) cache: Option<EphemeralCache>,
-	pub(crate) prefix: String
+	pub redis: Client,
+	pub cache: Option<EphemeralCache>,
 }
 
 impl RatelimitConfiguration {
-	pub fn new(redis: Client, allow_cache: bool, prefix_str: Option<String>) -> Self {
+	pub fn new(redis: Client, allow_cache: bool) -> Self {
 		let mut cache = None;
-		let mut prefix = String::from("@upstash/ratelimit");
 
 		if allow_cache {
 			cache = Some(EphemeralCache::new());
 		}
 
-		if prefix_str.is_some() {
-			prefix = prefix_str.unwrap();
-		}
-
-		Self { redis, cache, prefix }
+		Self { redis, cache }
 	}
 }
 
@@ -51,7 +45,7 @@ mod tests {
 		let Ok(redis) = redis::Client::open(connection_str) else {
 			panic!("Failed to connect")
 		};
-		let client = RatelimitConfiguration::new(redis, true, None);
+		let client = RatelimitConfiguration::new(redis, true);
 
 		let identifier = "anonymous32";
 
@@ -74,7 +68,7 @@ mod tests {
 		let Ok(redis) = redis::Client::open(connection_str) else {
 			panic!("Failed to connect")
 		};
-		let client = RatelimitConfiguration::new(redis, true, None);
+		let client = RatelimitConfiguration::new(redis, true);
 
 		let ratelimit = SlidingWindow::new(client, 10, "60s");
 

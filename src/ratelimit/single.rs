@@ -1,3 +1,4 @@
+use redis::{AsyncCommands, Client};
 use std::{
 	cmp::max,
 	time::{SystemTime, UNIX_EPOCH},
@@ -32,7 +33,7 @@ impl Algorithm for FixedWindow {
 			panic!("Unable to get current time");
 		};
 		let bucket = now.as_millis() / duration;
-		let key = vec![&self.client.prefix, identifier, bucket.to_string().as_str()].join(":");
+		let key = vec![&identifier, bucket.to_string().as_str()].join(":");
 
 		if self.client.cache.is_some() {
 			if self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
@@ -113,10 +114,10 @@ impl Algorithm for SlidingWindow {
 		};
 
 		let current_window = now.as_millis() / duration;
-		let current_key = vec![&self.client.prefix, identifier, current_window.to_string().as_str()].join(":");
+		let current_key = vec![&identifier, current_window.to_string().as_str()].join(":");
 
 		let previous_widow = current_window - 1;
-		let previous_key = vec![&self.client.prefix, identifier, previous_widow.to_string().as_str()].join(":");
+		let previous_key = vec![&identifier, previous_widow.to_string().as_str()].join(":");
 
 		if self.client.cache.is_some() {
 			if self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
