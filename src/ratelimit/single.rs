@@ -47,7 +47,6 @@ impl Algorithm for FixedWindow{
 
         let mut connection = self.client.redis.get_async_connection().await.unwrap();
         
-        // Script taken from @upstash/ratelimit
         let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
         let result: Result<i32, redis::RedisError> = script

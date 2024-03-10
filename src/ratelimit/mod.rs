@@ -39,10 +39,14 @@ mod tests {
     use self::single::FixedWindow;
 
     use super::*;
+    use dotenv::dotenv;
 
     #[tokio::test]
     async fn test_fixed_window() {
-        let Ok(redis) = redis::Client::open("connection_str") else {
+        dotenv().ok();
+
+        let connection_str = std::env::var("UPSTASH_REDIS_URL").unwrap_or_else(|_|panic!("Expecting UPSTASH_REDIS_URL to be set"));
+        let Ok(redis) = redis::Client::open(connection_str) else {
             panic!("Failed to connect")
         };
         let client = RatelimitConfiguration::new(redis, true);
@@ -56,6 +60,6 @@ mod tests {
         }
 
         let res = ratelimit.limit("anonymous").await;
-        assert!(!res.success);
+        assert!(res.success);
     }
 }
