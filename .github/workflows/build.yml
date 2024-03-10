@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  UPSTASH_REDIS_URL: ${{secrets.UPSTASH_REDIS_URL}}
 
 jobs:
   build:
