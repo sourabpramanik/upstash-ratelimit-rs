@@ -13,7 +13,11 @@ pub struct Blocked {
 pub struct EphemeralCache {
 	pub cache: HashMap<String, u128>,
 }
-
+impl Default for EphemeralCache {
+	fn default() -> Self {
+		Self::new()
+	}
+}
 impl EphemeralCache {
 	pub fn new() -> EphemeralCache {
 		EphemeralCache { cache: HashMap::new() }
@@ -45,7 +49,7 @@ impl EphemeralCache {
 		self.cache.get(identifier).copied()
 	}
 	pub fn incr(&mut self, identifier: &str) {
-		let mut value = self.get(identifier).unwrap_or_else(|| 0);
+		let mut value = self.get(identifier).unwrap_or(0);
 		value += 1;
 		self.cache.insert(identifier.to_owned(), value);
 	}

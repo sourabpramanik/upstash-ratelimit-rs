@@ -15,7 +15,7 @@ pub trait Algorithm {
 pub struct RatelimitConfiguration {
 	pub(crate) redis: Client,
 	pub(crate) cache: Option<EphemeralCache>,
-	pub(crate) prefix: String
+	pub(crate) prefix: String,
 }
 
 impl RatelimitConfiguration {

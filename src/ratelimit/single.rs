@@ -32,24 +32,22 @@ impl Algorithm for FixedWindow {
 			panic!("Unable to get current time");
 		};
 		let bucket = now.as_millis() / duration;
-		let key = vec![&self.client.prefix, identifier, bucket.to_string().as_str()].join(":");
+		let key = [&self.client.prefix, identifier, bucket.to_string().as_str()].join(":");
 
-		if self.client.cache.is_some() {
-			if self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
-				return RatelimitResponse {
-					success: false,
-					limit: tokens,
-					remaining: 0,
-					reset: 0,
-				};
-			}
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+			return RatelimitResponse {
+				success: false,
+				limit: tokens,
+				remaining: 0,
+				reset: 0,
+			};
 		}
 
 		let mut connection = self.client.redis.get_async_connection().await.unwrap();
 
 		let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
-		let increment_by = rate.unwrap_or_else(|| 1);
+		let increment_by = rate.unwrap_or(1);
 
 		let result: Result<i32, redis::RedisError> = script
 			.key(key)
@@ -75,7 +73,7 @@ impl Algorithm for FixedWindow {
 		let remaining = max(0, tokens as i32 - used_tokens) as u32;
 
 		if self.client.cache.is_some() && !success {
-			self.client.cache.clone().unwrap().block_until(&identifier, reset)
+			self.client.cache.clone().unwrap().block_until(identifier, reset)
 		}
 		RatelimitResponse {
 			success,
@@ -113,27 +111,25 @@ impl Algorithm for SlidingWindow {
 		};
 
 		let current_window = now.as_millis() / duration;
-		let current_key = vec![&self.client.prefix, identifier, current_window.to_string().as_str()].join(":");
+		let current_key = [&self.client.prefix, identifier, current_window.to_string().as_str()].join(":");
 
 		let previous_widow = current_window - 1;
-		let previous_key = vec![&self.client.prefix, identifier, previous_widow.to_string().as_str()].join(":");
+		let previous_key = [&self.client.prefix, identifier, previous_widow.to_string().as_str()].join(":");
 
-		if self.client.cache.is_some() {
-			if self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
-				return RatelimitResponse {
-					success: false,
-					limit: tokens,
-					remaining: 0,
-					reset: 0,
-				};
-			}
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+			return RatelimitResponse {
+				success: false,
+				limit: tokens,
+				remaining: 0,
+				reset: 0,
+			};
 		}
 
 		let mut connection = self.client.redis.get_async_connection().await.unwrap();
 
 		let script = redis::Script::new(include_str!("../../scripts/single_region/sliding_window.lua"));
 
-		let increment_by = rate.unwrap_or_else(|| 1);
+		let increment_by = rate.unwrap_or(1);
 
 		let result: Result<i32, redis::RedisError> = script
 			.key(vec![current_key, previous_key])
@@ -158,7 +154,7 @@ impl Algorithm for SlidingWindow {
 		let remaining = max(0, remaining_tokens) as u32;
 
 		if self.client.cache.is_some() && !success {
-			self.client.cache.clone().unwrap().block_until(&identifier, reset)
+			self.client.cache.clone().unwrap().block_until(identifier, reset)
 		}
 		RatelimitResponse {
 			success,
