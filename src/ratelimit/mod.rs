@@ -38,7 +38,7 @@ impl RatelimitConfiguration {
 #[cfg(test)]
 mod tests {
 
-	use self::single::{FixedWindow, SlidingWindow};
+	use self::single::{FixedWindow, SlidingWindow, TokenBucket};
 
 	use super::*;
 	use dotenv::dotenv;
@@ -79,6 +79,29 @@ mod tests {
 		let ratelimit = SlidingWindow::new(client, 10, "60s");
 
 		let identifier = "anonymous12";
+
+		for _ in 1..11 {
+			let res = ratelimit.limit(identifier, None).await;
+			assert!(res.success);
+		}
+
+		let res = ratelimit.limit(identifier, None).await;
+		assert!(!res.success);
+	}
+
+	#[tokio::test]
+	async fn test_token_window() {
+		dotenv().ok();
+
+		let connection_str = std::env::var("UPSTASH_REDIS_URL").unwrap_or_else(|_| panic!("Expecting UPSTASH_REDIS_URL to be set"));
+		let Ok(redis) = redis::Client::open(connection_str) else {
+			panic!("Failed to connect")
+		};
+		let client = RatelimitConfiguration::new(redis, true, None);
+
+		let ratelimit = TokenBucket::new(client, 10, "10s", 5);
+
+		let identifier = "anonymous52";
 
 		for _ in 1..11 {
 			let res = ratelimit.limit(identifier, None).await;

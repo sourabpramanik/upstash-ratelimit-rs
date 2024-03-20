@@ -164,3 +164,82 @@ impl Algorithm for SlidingWindow {
 		}
 	}
 }
+
+#[derive(Debug, Clone)]
+pub struct TokenBucket {
+	client: RatelimitConfiguration,
+	tokens: u32,
+	interval: u128,
+	refill_rate: u32,
+}
+
+impl TokenBucket {
+	pub fn new(client: RatelimitConfiguration, tokens: u32, interval: &str, refill_rate: u32) -> Self {
+		Self {
+			client,
+			tokens,
+			interval: into_milliseconds(interval),
+			refill_rate,
+		}
+	}
+}
+
+impl Algorithm for TokenBucket {
+	async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse {
+		let tokens = self.tokens;
+		let interval = self.interval;
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+			return RatelimitResponse {
+				success: false,
+				limit: tokens,
+				remaining: 0,
+				reset: 0,
+			};
+		}
+
+		let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
+			panic!("Unable to get current time");
+		};
+		let key = [&self.client.prefix, identifier].join(":");
+		let mut connection = self.client.redis.get_async_connection().await.unwrap();
+		let script = redis::Script::new(include_str!("../../scripts/single_region/token_window.lua"));
+		let increment_by = rate.unwrap_or(1);
+
+		let result: Result<(i32, i32), redis::RedisError> = script
+			.key(key)
+			.arg(vec![
+				tokens,
+				interval as u32,
+				self.refill_rate,
+				(now.as_millis() / interval) as u32,
+				increment_by,
+			])
+			.invoke_async(&mut connection)
+			.await;
+
+		let (remaining, reset) = match result {
+			Ok(val) => val,
+			Err(err) => {
+				println!("Failed to evaluate: {}", err);
+				return RatelimitResponse {
+					success: false,
+					limit: tokens,
+					remaining: 0,
+					reset: 0,
+				};
+			}
+		};
+
+		let success = remaining > 0;
+
+		if self.client.cache.is_some() && !success {
+			self.client.cache.clone().unwrap().block_until(identifier, reset as u128)
+		}
+		RatelimitResponse {
+			success,
+			limit: tokens,
+			remaining: remaining as u32,
+			reset: reset as u128,
+		}
+	}
+}
