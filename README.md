@@ -39,7 +39,7 @@ let limit_response = state.ratelimit.limit("some-unique-identifier-like-ip", Som
 This will consume 10 tokens in one request.
 
 ## Examples
-Check the `/examples` directory
+Check the [examples](/examples) directory
 
 ## Roadmap
 - Single Region (may have latency issues)
