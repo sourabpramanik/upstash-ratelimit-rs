@@ -29,6 +29,15 @@ Use the `ratelimit` instance to call the limit function in any request calls to 
 ```rust
 let limit_response = state.ratelimit.limit("some-unique-identifier-like-ip", None).await;
 ```
+
+## Custom rate
+By default every algorithm consumes one token per request, but if you want rate-limit the requests based on the payload size or any other factor, you can do so by providing the rate value to the limit function call:
+
+```rust
+let limit_response = state.ratelimit.limit("some-unique-identifier-like-ip", Some(10)).await;
+```
+This will consume 10 tokens in one request.
+
 ## Examples
 Check the `/examples` directory
 
