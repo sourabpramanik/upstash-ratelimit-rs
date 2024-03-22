@@ -9,6 +9,10 @@ homepage = "https://github.com/sourabpramanik/upstash-ratelimit-rs"
 keywords = ["redis", "ratelimit", "sdk", "upstash", "kv"]
 license = "MIT"
 
+[[example]]
+name = "with-actix"
+path = "examples/actix.rs"
+
 [lib]
 doctest = false
 
@@ -22,3 +26,8 @@ redis = {version = "0.24.0", features = ["tokio-comp"]}
 regex = "1.10.3"
 tokio = { version = "1.36.0", features = ["full"] }
 
+[dev-dependencies]
+actix-web = "4"
+dotenv = "0.15"
+redis = {version = "0.24.0", features = ["tokio-comp"]}
+upstash-ratelimit-rs = {path = "./"}
