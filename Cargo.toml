@@ -1,6 +1,6 @@
 [package]
 name = "upstash-ratelimit-rs"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["Sourab Pramanik <shubpramanik241@gmail.com>"]
 description = "An unofficial Upstash rate limiting SDK in Rust"
@@ -8,7 +8,9 @@ repository = "https://github.com/sourabpramanik/upstash-ratelimit-rs"
 homepage = "https://github.com/sourabpramanik/upstash-ratelimit-rs"
 keywords = ["redis", "ratelimit", "sdk", "upstash", "kv"]
 license = "MIT"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+doctest = false
 
 [dependencies]
 assert-panic = "1.0.1"
@@ -19,3 +21,4 @@ nanoid = "0.4.0"
 redis = {version = "0.24.0", features = ["tokio-comp"]}
 regex = "1.10.3"
 tokio = { version = "1.36.0", features = ["full"] }
+
