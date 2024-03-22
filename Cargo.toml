@@ -15,6 +15,7 @@ assert-panic = "1.0.1"
 chrono = "0.4"
 dotenv = "0.15"
 futures = "0.3"
+nanoid = "0.4.0"
 redis = {version = "0.24.0", features = ["tokio-comp"]}
 regex = "1.10.3"
 tokio = { version = "1.36.0", features = ["full"] }

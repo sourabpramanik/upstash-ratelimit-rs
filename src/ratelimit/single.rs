@@ -48,10 +48,9 @@ impl Algorithm for FixedWindow {
 		let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
 		let increment_by = rate.unwrap_or(1);
-
 		let result: Result<i32, redis::RedisError> = script
 			.key(key)
-			.arg(vec![duration as u64, increment_by as u64])
+			.arg(&[duration as u64, increment_by as u64])
 			.invoke_async(&mut connection)
 			.await;
 
@@ -230,7 +229,7 @@ impl Algorithm for TokenBucket {
 			}
 		};
 
-		let success = remaining > 0;
+		let success = remaining >= 0;
 
 		if self.client.cache.is_some() && !success {
 			self.client.cache.clone().unwrap().block_until(identifier, reset as u128)

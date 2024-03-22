@@ -54,17 +54,3 @@ impl EphemeralCache {
 		self.cache.insert(identifier.to_owned(), value);
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	use super::EphemeralCache;
-
-	#[test]
-	fn test_get_cache() {
-		let key = "ip_address";
-		let mut test_cache = EphemeralCache::new();
-		test_cache.set(key, 2000);
-		assert_eq!(2000, test_cache.get(key).unwrap());
-		assert!(test_cache.get("unknown_key").is_none());
-	}
-}

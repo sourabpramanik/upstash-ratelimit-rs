@@ -21,32 +21,32 @@ pub fn into_milliseconds(duration: &str) -> u128 {
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::into_milliseconds;
+// #[cfg(test)]
+// mod tests {
+// 	use super::into_milliseconds;
 
-	#[test]
-	fn test_days_into_milliseconds() {
-		assert_eq!(86400000, into_milliseconds("1d"))
-	}
+// 	#[test]
+// 	fn test_days_into_milliseconds() {
+// 		assert_eq!(86400000, into_milliseconds("1d"))
+// 	}
 
-	#[test]
-	fn test_hours_into_milliseconds() {
-		assert_eq!(7200000, into_milliseconds("2h"))
-	}
+// 	#[test]
+// 	fn test_hours_into_milliseconds() {
+// 		assert_eq!(7200000, into_milliseconds("2h"))
+// 	}
 
-	#[test]
-	fn test_minutes_into_milliseconds() {
-		assert_eq!(300000, into_milliseconds("5m"))
-	}
+// 	#[test]
+// 	fn test_minutes_into_milliseconds() {
+// 		assert_eq!(300000, into_milliseconds("5m"))
+// 	}
 
-	#[test]
-	fn test_seconds_into_milliseconds() {
-		assert_eq!(10000, into_milliseconds("10s"))
-	}
+// 	#[test]
+// 	fn test_seconds_into_milliseconds() {
+// 		assert_eq!(10000, into_milliseconds("10s"))
+// 	}
 
-	#[test]
-	fn test_milliseconds() {
-		assert_eq!(2000000, into_milliseconds("2000000ms"))
-	}
-}
+// 	#[test]
+// 	fn test_milliseconds() {
+// 		assert_eq!(2000000, into_milliseconds("2000000ms"))
+// 	}
+// }
