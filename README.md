@@ -29,10 +29,21 @@ Use the `ratelimit` instance to call the limit function in the any request calls
 ```rust
 let limit_response = state.ratelimit.limit("some-unique-identifier-like-ip", None).await;
 ```
+## Examples
+Check the `/examples` directory
 
 ## Roadmap
-Coming soon...
+- Single Region (may have latency issues)
+    -
+    - Fixed window algorithm ✅
+    - Sliding window algorithm ✅
+    - Token bucket algorithm ✅
+    - Cached fixed window algorithm 🛠️
+    - Analytics 🛠️
+    - Forced timeout 🛠️
+    - Hard reset 🛠️
 
-## Contributions
-
-This library is still in WIP. Very soon all the contributions will be accepted.
+- Multiple Region (no latency issues)
+    -
+    - Fixed window algorithm 🛠️
+    - Sliding window algorithm 🛠️
