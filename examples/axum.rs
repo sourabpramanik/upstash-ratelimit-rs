@@ -1,4 +1,4 @@
-use axum::{extract::State, routing::get, Router};
+use axum::{body::Body, extract::State, response::Response, routing::get, Router};
 use dotenv::dotenv;
 use upstash_ratelimit_rs::ratelimit::{single::FixedWindow, Algorithm, RatelimitConfiguration};
 
@@ -23,10 +23,10 @@ async fn main() {
 	axum::serve(listener, app).await.unwrap();
 }
 
-async fn root(State(ratelimit): State<FixedWindow>) -> &'static str {
+async fn root(State(ratelimit): State<FixedWindow>) -> Response {
 	let limit_response = ratelimit.limit("some-unique-identifier-like-ip", None).await;
 	if !limit_response.success {
-		return "Wait for a while";
+		return Response::builder().status(429).body(Body::from("Wait for a while")).unwrap();
 	}
-	"Hello, World!"
+	Response::builder().status(200).body(Body::from("Hello world!")).unwrap()
 }
