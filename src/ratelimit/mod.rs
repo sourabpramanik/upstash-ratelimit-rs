@@ -1,61 +1,36 @@
+pub mod cache;
+pub mod common;
 pub(crate) mod duration;
 pub mod single;
-pub mod common;
-pub mod cache;
 
 use redis::Client;
 
 use self::{cache::EphemeralCache, common::RatelimitResponse};
 
-pub trait Algorithm{
-    async fn limit(&self, identifier: &str) -> RatelimitResponse;
+pub trait Algorithm {
+	fn limit(&self, identifier: &str, rate: Option<u32>) -> impl std::future::Future<Output = RatelimitResponse> + Send;
 }
 
-#[derive(Debug)]
-pub struct RatelimitConfiguration{
-    pub redis: Client,
-    pub cache: Option<EphemeralCache>,
+#[derive(Debug, Clone)]
+pub struct RatelimitConfiguration {
+	pub(crate) redis: Client,
+	pub(crate) cache: Option<EphemeralCache>,
+	pub(crate) prefix: String,
 }
 
-impl RatelimitConfiguration{
-    pub fn new(redis: Client, allow_cache: bool) -> Self{
-        let mut cache = None;
-        
-        if allow_cache{
-            cache = Some(EphemeralCache::new());
-        }
+impl RatelimitConfiguration {
+	pub fn new(redis: Client, allow_cache: bool, prefix_str: Option<String>) -> Self {
+		let mut cache = None;
+		let mut prefix = String::from("@upstash/ratelimit");
 
-        Self{
-            redis,
-            cache,
-        }
-    }
-}
+		if allow_cache {
+			cache = Some(EphemeralCache::new());
+		}
 
-#[cfg(test)]
-mod tests {
-    use std::{thread::sleep, time::Duration};
+		if prefix_str.is_some() {
+			prefix = prefix_str.unwrap();
+		}
 
-    use self::single::FixedWindow;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_fixed_window() {
-        let Ok(redis) = redis::Client::open("connection_str") else {
-            panic!("Failed to connect")
-        };
-        let client = RatelimitConfiguration::new(redis, true);
-
-        let ratelimit = FixedWindow::new(client, 10, "60s");
-
-        for _ in 0..10 {
-            let res= ratelimit.limit("anonymous").await;
-            sleep(Duration::from_millis(1000));
-            assert!(res.success);
-        }
-
-        let res = ratelimit.limit("anonymous").await;
-        assert!(!res.success);
-    }
+		Self { redis, cache, prefix }
+	}
 }
