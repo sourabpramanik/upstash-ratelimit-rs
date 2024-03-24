@@ -1,6 +1,6 @@
 [package]
 name = "upstash-ratelimit-rs"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Sourab Pramanik <shubpramanik241@gmail.com>"]
 description = "An unofficial Upstash rate limiting SDK in Rust"
