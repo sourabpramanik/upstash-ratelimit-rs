@@ -4,11 +4,11 @@ pub(crate) mod duration;
 pub mod single;
 
 use redis::Client;
-
+use futures::future::BoxFuture;
 use self::{cache::EphemeralCache, common::RatelimitResponse};
 
 pub trait Algorithm {
-	fn limit(&self, identifier: &str, rate: Option<u32>) -> impl std::future::Future<Output = RatelimitResponse> + Send;
+	fn limit(&self, identifier: &str, rate: Option<u32>) -> BoxFuture<'static, RatelimitResponse>;
 }
 
 #[derive(Debug, Clone)]

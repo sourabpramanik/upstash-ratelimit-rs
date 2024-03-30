@@ -2,7 +2,7 @@ use std::{
 	cmp::max,
 	time::{SystemTime, UNIX_EPOCH},
 };
-
+use futures::future::BoxFuture;
 use super::{duration::into_milliseconds, Algorithm, RatelimitConfiguration};
 use crate::ratelimit::RatelimitResponse;
 
@@ -21,10 +21,8 @@ impl FixedWindow {
 			duration: into_milliseconds(window),
 		}
 	}
-}
 
-impl Algorithm for FixedWindow {
-	async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse {
+	async fn limiter(self, identifier: String, increment_by: u32) -> RatelimitResponse {
 		let tokens = self.tokens;
 		let duration = self.duration;
 
@@ -32,9 +30,9 @@ impl Algorithm for FixedWindow {
 			panic!("Unable to get current time");
 		};
 		let bucket = now.as_millis() / duration;
-		let key = [&self.client.prefix, identifier, bucket.to_string().as_str()].join(":");
+		let key = [&identifier, bucket.to_string().as_str()].join(":");
 
-		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
 			return RatelimitResponse {
 				success: false,
 				limit: tokens,
@@ -47,7 +45,6 @@ impl Algorithm for FixedWindow {
 
 		let script = redis::Script::new(include_str!("../../scripts/single_region/fixed_window.lua"));
 
-		let increment_by = rate.unwrap_or(1);
 		let result: Result<i32, redis::RedisError> = script
 			.key(key)
 			.arg(&[duration as u64, increment_by as u64])
@@ -59,11 +56,11 @@ impl Algorithm for FixedWindow {
 			Err(err) => {
 				println!("Failed to evaluate: {}", err);
 				return RatelimitResponse {
-					success: false,
-					limit: tokens,
-					remaining: 0,
-					reset: 0,
-				};
+                    success: false,
+                    limit: tokens,
+                    remaining: 0,
+                    reset: 0,
+                };
 			}
 		};
 
@@ -72,7 +69,7 @@ impl Algorithm for FixedWindow {
 		let remaining = max(0, tokens as i32 - used_tokens) as u32;
 
 		if self.client.cache.is_some() && !success {
-			self.client.cache.clone().unwrap().block_until(identifier, reset)
+			self.client.cache.clone().unwrap().block_until(&identifier, reset)
 		}
 		RatelimitResponse {
 			success,
@@ -80,6 +77,15 @@ impl Algorithm for FixedWindow {
 			remaining,
 			reset,
 		}
+	}
+}
+
+impl Algorithm for FixedWindow {
+	fn limit(&self, identifier: &str, rate: Option<u32>) ->  BoxFuture<'static, RatelimitResponse>{
+		let key = [&self.client.prefix, identifier].join(":");
+		let increment_by = rate.unwrap_or(1);
+
+		Box::pin(self.clone().limiter(key, increment_by))
 	}
 }
 
@@ -98,11 +104,9 @@ impl SlidingWindow {
 			duration: into_milliseconds(window),
 		}
 	}
-}
 
-impl Algorithm for SlidingWindow {
-	async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse {
-		let tokens = self.tokens;
+    async fn limiter(self, identifier: String, increment_by: u32) -> RatelimitResponse{
+        let tokens = self.tokens;
 		let duration = self.duration;
 
 		let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
@@ -110,12 +114,12 @@ impl Algorithm for SlidingWindow {
 		};
 
 		let current_window = now.as_millis() / duration;
-		let current_key = [&self.client.prefix, identifier, current_window.to_string().as_str()].join(":");
+		let current_key = [&identifier, current_window.to_string().as_str()].join(":");
 
 		let previous_widow = current_window - 1;
-		let previous_key = [&self.client.prefix, identifier, previous_widow.to_string().as_str()].join(":");
+		let previous_key = [&identifier, previous_widow.to_string().as_str()].join(":");
 
-		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
 			return RatelimitResponse {
 				success: false,
 				limit: tokens,
@@ -127,8 +131,6 @@ impl Algorithm for SlidingWindow {
 		let mut connection = self.client.redis.get_async_connection().await.unwrap();
 
 		let script = redis::Script::new(include_str!("../../scripts/single_region/sliding_window.lua"));
-
-		let increment_by = rate.unwrap_or(1);
 
 		let result: Result<i32, redis::RedisError> = script
 			.key(vec![current_key, previous_key])
@@ -153,7 +155,7 @@ impl Algorithm for SlidingWindow {
 		let remaining = max(0, remaining_tokens) as u32;
 
 		if self.client.cache.is_some() && !success {
-			self.client.cache.clone().unwrap().block_until(identifier, reset)
+			self.client.cache.clone().unwrap().block_until(&identifier, reset)
 		}
 		RatelimitResponse {
 			success,
@@ -161,7 +163,18 @@ impl Algorithm for SlidingWindow {
 			remaining,
 			reset,
 		}
+
+    } 
+}
+
+impl Algorithm for SlidingWindow {
+	fn limit(&self, identifier: &str, rate: Option<u32>) -> BoxFuture<'static, RatelimitResponse> {
+        let key = [&self.client.prefix, identifier].join(":");
+		let increment_by = rate.unwrap_or(1);
+
+		Box::pin(self.clone().limiter(key, increment_by))
 	}
+
 }
 
 #[derive(Debug, Clone)]
@@ -181,13 +194,11 @@ impl TokenBucket {
 			refill_rate,
 		}
 	}
-}
 
-impl Algorithm for TokenBucket {
-	async fn limit(&self, identifier: &str, rate: Option<u32>) -> RatelimitResponse {
-		let tokens = self.tokens;
+    async fn limiter(self, identifier: String, increment_by: u32)->RatelimitResponse{
+        let tokens = self.tokens;
 		let interval = self.interval;
-		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(identifier).blocked {
+		if self.client.cache.is_some() && self.client.cache.clone().unwrap().is_blocked(&identifier).blocked {
 			return RatelimitResponse {
 				success: false,
 				limit: tokens,
@@ -199,10 +210,9 @@ impl Algorithm for TokenBucket {
 		let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
 			panic!("Unable to get current time");
 		};
-		let key = [&self.client.prefix, identifier].join(":");
+		let key = &identifier;
 		let mut connection = self.client.redis.get_async_connection().await.unwrap();
 		let script = redis::Script::new(include_str!("../../scripts/single_region/token_window.lua"));
-		let increment_by = rate.unwrap_or(1);
 
 		let result: Result<(i32, i32), redis::RedisError> = script
 			.key(key)
@@ -232,7 +242,7 @@ impl Algorithm for TokenBucket {
 		let success = remaining >= 0;
 
 		if self.client.cache.is_some() && !success {
-			self.client.cache.clone().unwrap().block_until(identifier, reset as u128)
+			self.client.cache.clone().unwrap().block_until(&identifier, reset as u128)
 		}
 		RatelimitResponse {
 			success,
@@ -240,5 +250,20 @@ impl Algorithm for TokenBucket {
 			remaining: remaining as u32,
 			reset: reset as u128,
 		}
-	}
+
+    }
 }
+
+impl Algorithm for TokenBucket {
+	fn limit(&self, identifier: &str, rate: Option<u32>) -> BoxFuture<'static, RatelimitResponse> {
+        let key = [&self.client.prefix, identifier].join(":");
+		let increment_by = rate.unwrap_or(1);
+
+		Box::pin(self.clone().limiter(key, increment_by))
+    }
+}
+
+
+
+
+
